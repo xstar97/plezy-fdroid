@@ -72,6 +72,19 @@ class MainTests(unittest.TestCase):
                 MODULE.PLACEHOLDER_ICON_BYTES,
             )
 
+    def test_ensure_repo_icon_ignores_non_file_sources(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            project_dir = Path(tmp)
+            fdroid_dir = project_dir / "fdroid"
+            (project_dir / MODULE.REPO_ICON_NAME).mkdir()
+
+            MODULE.ensure_repo_icon(fdroid_dir, project_dir=project_dir)
+
+            self.assertEqual(
+                (fdroid_dir / "repo" / "icons" / MODULE.REPO_ICON_NAME).read_bytes(),
+                MODULE.PLACEHOLDER_ICON_BYTES,
+            )
+
     def test_main_uses_store_password_for_pkcs12(self):
         with tempfile.TemporaryDirectory() as tmp:
             config_path = Path(tmp) / "config.yml"

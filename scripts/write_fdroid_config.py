@@ -65,7 +65,7 @@ def ensure_repo_icon(fdroid_dir: Path, project_dir: Path | None = None) -> None:
     root_dir = project_dir or Path(__file__).resolve().parents[1]
     for relative_icon_path in LOCAL_REPO_ICON_CANDIDATES:
         source_icon_path = root_dir / relative_icon_path
-        if source_icon_path.exists():
+        if source_icon_path.is_file():
             shutil.copy2(source_icon_path, icon_path)
             return
 
