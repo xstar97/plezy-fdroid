@@ -18,7 +18,7 @@ from common import (
 from inspect_apk import inspect_apk
 
 DEFAULT_ARCHES = {"arm64-v8a", "armeabi-v7a", "x86_64"}
-REPO_ICON_NAME = "icon.png"
+REPO_ICON_NAME = "plezy.png"
 REPO_ICON_FALLBACK_URL = "https://cdn.jsdelivr.net/gh/selfhst/icons@main/png/plezy.png"
 REPO_ICON_FALLBACK_SHA256 = "d7f9084479aa4034c7df277e52e1668a571473955f719aff6c815ab30869ba40"
 LOCAL_REPO_ICON_CANDIDATES = (
