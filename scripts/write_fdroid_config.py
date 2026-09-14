@@ -78,6 +78,7 @@ def main() -> None:
         "repo_name": repo_name,
         "repo_url": repo_url,
         "repo_description": "Mirror of Android Plezy releases from edde746/plezy",
+        "repo_icon": "icon.png",
         "archive_older": 0,
         "keystore": keystore_path,
         "keystorepass": keystore_password,
