@@ -104,7 +104,7 @@ REPO_TEMPLATE = """<!doctype html>
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="Write GitHub Pages landing files")
     parser.add_argument("--fdroid-dir", type=Path, default=Path("fdroid"))
-    parser.add_argument("--repo-url", required=True)
+    parser.add_argument("--pages-base-url", required=True)
     return parser.parse_args()
 
 
@@ -112,7 +112,8 @@ def main() -> None:
     args = parse_args()
     repo_dir = args.fdroid_dir / "repo"
     repo_dir.mkdir(parents=True, exist_ok=True)
-    escaped_repo_url = escape(args.repo_url, quote=True)
+    repo_url = f"{args.pages_base_url.rstrip('/')}/repo"
+    escaped_repo_url = escape(repo_url, quote=True)
 
     (args.fdroid_dir / ".nojekyll").write_text("", encoding="utf-8")
     (args.fdroid_dir / "index.html").write_text(
