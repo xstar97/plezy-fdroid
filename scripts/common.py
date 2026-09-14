@@ -229,8 +229,8 @@ def extract_single_apk(archive_path: Path, destination_dir: Path) -> Path:
             if member_path.is_absolute() or ".." in member_path.parts:
                 raise ValueError(f"Unsafe archive path detected: {member.name}")
             if member.isfile() and member_path.name.endswith(".apk"):
-                apk_member = member
-                break
+                if apk_member is None:
+                    apk_member = member
 
         if apk_member is None:
             raise ValueError(f"No APK file found in archive: {archive_path}")

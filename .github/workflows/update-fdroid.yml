@@ -75,20 +75,26 @@ jobs:
           test -n "$FDROID_KEYSTORE_PASSWORD" || (echo "Missing FDROID_KEYSTORE_PASSWORD secret" && exit 1)
           test -n "$FDROID_KEY_ALIAS" || (echo "Missing FDROID_KEY_ALIAS secret" && exit 1)
           test -n "$FDROID_KEY_PASSWORD" || (echo "Missing FDROID_KEY_PASSWORD secret" && exit 1)
+          REPO_NAME="${FDROID_REPO_NAME:-Plezy F-Droid Mirror}" \
+          REPO_URL="https://${{ github.repository_owner }}.github.io/${{ github.event.repository.name }}/repo" \
+          python - <<'PY'
+          import json
+          import os
+          from pathlib import Path
 
-          REPO_NAME=${FDROID_REPO_NAME:-"Plezy F-Droid Mirror"}
-          REPO_URL="https://${{ github.repository_owner }}.github.io/${{ github.event.repository.name }}/repo"
-          {
-            echo "repo_name: \"$REPO_NAME\""
-            echo "repo_url: \"$REPO_URL\""
-            echo "repo_description: \"Mirror of Android Plezy releases from edde746/plezy\""
-            echo "archive_older: 0"
-            echo "keystore: /tmp/fdroid-keystore.jks"
-            echo "keystorepass: \"$FDROID_KEYSTORE_PASSWORD\""
-            echo "keypass: \"$FDROID_KEY_PASSWORD\""
-            echo "repo_keyalias: \"$FDROID_KEY_ALIAS\""
-            echo "make_current_version_link: false"
-          } > fdroid/config.yml
+          config = {
+              "repo_name": os.environ["REPO_NAME"],
+              "repo_url": os.environ["REPO_URL"],
+              "repo_description": "Mirror of Android Plezy releases from edde746/plezy",
+              "archive_older": 0,
+              "keystore": "/tmp/fdroid-keystore.jks",
+              "keystorepass": os.environ["FDROID_KEYSTORE_PASSWORD"],
+              "keypass": os.environ["FDROID_KEY_PASSWORD"],
+              "repo_keyalias": os.environ["FDROID_KEY_ALIAS"],
+              "make_current_version_link": False,
+          }
+          Path("fdroid/config.yml").write_text(json.dumps(config, indent=2) + "\n", encoding="utf-8")
+          PY
 
       - name: Generate F-Droid index
         run: |
