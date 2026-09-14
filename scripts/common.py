@@ -214,18 +214,21 @@ def extract_single_apk(archive_path: Path, destination_dir: Path) -> Path:
     except tarfile.TarError as error:
         raise ValueError(f"Corrupt archive: {archive_path}") from error
 
-    apk_member = None
+    apk_members = []
     with tar:
         for member in tar.getmembers():
             member_path = PurePosixPath(member.name)
             if member_path.is_absolute() or ".." in member_path.parts:
                 raise ValueError(f"Unsafe archive path detected: {member.name}")
             if member.isfile() and member_path.name.endswith(".apk"):
-                if apk_member is None:
-                    apk_member = member
+                apk_members.append(member)
 
-        if apk_member is None:
+        if not apk_members:
             raise ValueError(f"No APK file found in archive: {archive_path}")
+        if len(apk_members) > 1:
+            names = ", ".join(member.name for member in apk_members)
+            raise ValueError(f"Expected exactly one APK in {archive_path}, found: {names}")
+        apk_member = apk_members[0]
 
         fileobj = tar.extractfile(apk_member)
         if fileobj is None:

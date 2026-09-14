@@ -36,11 +36,17 @@ jobs:
         with:
           python-version: "3.12"
 
+      - name: Compute cache epoch
+        id: cache-epoch
+        run: echo "week=$(date +%G-%V)" >> "$GITHUB_OUTPUT"
+
       - name: Cache Plezy artifacts
         uses: actions/cache@v4
         with:
           path: .cache/plezy
-          key: plezy-cache-${{ runner.os }}-${{ hashFiles('scripts/*.py', 'requirements.txt') }}
+          key: plezy-cache-${{ runner.os }}-${{ steps.cache-epoch.outputs.week }}-${{ hashFiles('scripts/*.py', 'requirements.txt') }}
+          restore-keys: |
+            plezy-cache-${{ runner.os }}-
 
       - name: Install dependencies
         run: |

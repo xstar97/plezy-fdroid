@@ -19,6 +19,11 @@ on:
         required: false
         type: boolean
         default: false
+      publish_to_pages:
+        description: "Publish this custom build to GitHub Pages"
+        required: false
+        type: boolean
+        default: false
 
 permissions:
   contents: read
@@ -45,11 +50,17 @@ jobs:
         with:
           python-version: "3.12"
 
+      - name: Compute cache epoch
+        id: cache-epoch
+        run: echo "week=$(date +%G-%V)" >> "$GITHUB_OUTPUT"
+
       - name: Cache Plezy artifacts
         uses: actions/cache@v4
         with:
           path: .cache/plezy
-          key: plezy-cache-${{ runner.os }}-${{ hashFiles('scripts/*.py', 'requirements.txt') }}
+          key: plezy-cache-${{ runner.os }}-${{ steps.cache-epoch.outputs.week }}-${{ hashFiles('scripts/*.py', 'requirements.txt') }}
+          restore-keys: |
+            plezy-cache-${{ runner.os }}-
 
       - name: Install dependencies
         run: |
@@ -136,14 +147,23 @@ jobs:
           cd fdroid
           fdroid update --create-metadata --pretty
 
+      - name: Upload custom build artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: custom-fdroid-repo
+          path: fdroid
+
       - name: Configure GitHub Pages
+        if: ${{ inputs.publish_to_pages }}
         uses: actions/configure-pages@v5
 
       - name: Upload Pages artifact
+        if: ${{ inputs.publish_to_pages }}
         uses: actions/upload-pages-artifact@v3
         with:
           path: fdroid
 
       - name: Deploy to GitHub Pages
+        if: ${{ inputs.publish_to_pages }}
         id: deployment
         uses: actions/deploy-pages@v4

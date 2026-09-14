@@ -57,11 +57,15 @@ Workflow: `.github/workflows/build-custom-version.yml`
 - `versions`: comma-separated tags (example: `v1.5.0,v1.8.2,v1.11.1`)
 - `include_latest` (boolean, default `true`)
 - `include_prereleases` (boolean, default `false`)
+- `publish_to_pages` (boolean, default `false`)
 
 If `include_latest=true`, output includes:
 
 - latest 10 Android-capable releases
 - plus all requested manual versions
+
+Manual runs always upload a `custom-fdroid-repo` workflow artifact.
+Set `publish_to_pages=true` only when you intentionally want that custom build deployed to the GitHub Pages URL.
 
 ## Signing key setup (required)
 
