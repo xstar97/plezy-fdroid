@@ -54,7 +54,7 @@ def main() -> None:
     if not key_alias:
         raise ValueError("FDROID_KEY_ALIAS resolves to empty after newline trimming")
     if not repo_name:
-        raise ValueError("FDROID_REPO_NAME resolves to empty after newline trimming")
+        raise ValueError("REPO_NAME resolves to empty after newline trimming")
 
     keystore_type = detect_keystore_type(keystore_path, keystore_password)
     if keystore_type == "PKCS12":
