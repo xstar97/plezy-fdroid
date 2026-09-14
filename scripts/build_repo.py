@@ -70,11 +70,14 @@ def ensure_repo_icon(repo_dir: Path, project_dir: Path | None = None) -> None:
         print(f"[icon] Copied legacy repo icon from {legacy_icon_path} to {icon_path}")
         return
 
-    download_with_cache(
-        REPO_ICON_FALLBACK_URL,
-        icon_path,
-        expected_sha256=REPO_ICON_FALLBACK_SHA256,
-    )
+    with tempfile.TemporaryDirectory() as tmp:
+        downloaded_icon_path = Path(tmp) / REPO_ICON_NAME
+        download_with_cache(
+            REPO_ICON_FALLBACK_URL,
+            downloaded_icon_path,
+            expected_sha256=REPO_ICON_FALLBACK_SHA256,
+        )
+        downloaded_icon_path.replace(icon_path)
     print(f"[icon] Downloaded fallback repo icon to {icon_path}")
 
 

@@ -58,6 +58,7 @@ class EnsureRepoIconTests(unittest.TestCase):
             def fake_download(url: str, destination: Path, expected_sha256: str | None = None) -> Path:
                 self.assertEqual(url, MODULE.REPO_ICON_FALLBACK_URL)
                 self.assertEqual(expected_sha256, MODULE.REPO_ICON_FALLBACK_SHA256)
+                self.assertNotEqual(destination, icon_path)
                 destination.write_bytes(b"downloaded")
                 return destination
 
