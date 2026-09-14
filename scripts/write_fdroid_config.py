@@ -5,6 +5,7 @@ from __future__ import annotations
 
 import os
 import subprocess
+import errno
 from pathlib import Path
 
 import yaml
@@ -85,8 +86,18 @@ def main() -> None:
         "make_current_version_link": False,
     }
     config_path.parent.mkdir(parents=True, exist_ok=True)
+    if config_path.exists() and config_path.is_symlink():
+        raise ValueError("FDROID_CONFIG_PATH must not be a symlink")
     config_text = yaml.safe_dump(config, sort_keys=False)
-    fd = os.open(config_path, os.O_WRONLY | os.O_CREAT | os.O_TRUNC, 0o600)
+    open_flags = os.O_WRONLY | os.O_CREAT | os.O_TRUNC
+    if hasattr(os, "O_NOFOLLOW"):
+        open_flags |= os.O_NOFOLLOW
+    try:
+        fd = os.open(config_path, open_flags, 0o600)
+    except OSError as exc:
+        if exc.errno == errno.ELOOP:
+            raise ValueError("FDROID_CONFIG_PATH must not be a symlink") from exc
+        raise
     with os.fdopen(fd, "w", encoding="utf-8") as file:
         file.write(config_text)
     os.chmod(config_path, 0o600)

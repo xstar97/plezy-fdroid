@@ -107,6 +107,26 @@ class MainTests(unittest.TestCase):
             config = yaml.safe_load(config_path.read_text(encoding="utf-8"))
             self.assertEqual(config["keypass"], "separate-key-pass")
 
+    def test_main_rejects_symlink_config_path(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            target_path = Path(tmp) / "target.yml"
+            target_path.write_text("", encoding="utf-8")
+            config_path = Path(tmp) / "config.yml"
+            config_path.symlink_to(target_path)
+            env = {
+                "FDROID_KEYSTORE_PATH": "/tmp/fdroid-keystore.jks",
+                "FDROID_KEYSTORE_PASSWORD": "store-pass",
+                "FDROID_KEY_ALIAS": "alias",
+                "REPO_NAME": "Repo Name",
+                "REPO_URL": "https://example.com/repo",
+                "FDROID_CONFIG_PATH": str(config_path),
+            }
+            with mock.patch.dict(os.environ, env, clear=False), mock.patch.object(
+                MODULE, "detect_keystore_type", return_value="PKCS12"
+            ):
+                with self.assertRaisesRegex(ValueError, "must not be a symlink"):
+                    MODULE.main()
+
 
 if __name__ == "__main__":
     unittest.main()
