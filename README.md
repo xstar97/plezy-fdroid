@@ -43,7 +43,7 @@ Architecture discovery is dynamic, so added/removed upstream Android architectur
 
 Workflow: `.github/workflows/update-fdroid.yml`
 
-- Runs on pushes to `main` that change the F-Droid build or deployment inputs.
+- Runs on pushes to `main`.
 - Runs daily.
 - Also supports manual trigger.
 - Builds latest 3 valid Android releases and publishes to GitHub Pages.
