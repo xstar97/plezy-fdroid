@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import argparse
+from html import escape
 from pathlib import Path
 
 
@@ -111,14 +112,15 @@ def main() -> None:
     args = parse_args()
     repo_dir = args.fdroid_dir / "repo"
     repo_dir.mkdir(parents=True, exist_ok=True)
+    escaped_repo_url = escape(args.repo_url, quote=True)
 
     (args.fdroid_dir / ".nojekyll").write_text("", encoding="utf-8")
     (args.fdroid_dir / "index.html").write_text(
-        ROOT_TEMPLATE.format(repo_url=args.repo_url) + "\n",
+        ROOT_TEMPLATE.format(repo_url=escaped_repo_url) + "\n",
         encoding="utf-8",
     )
     (repo_dir / "index.html").write_text(
-        REPO_TEMPLATE.format(repo_url=args.repo_url) + "\n",
+        REPO_TEMPLATE.format(repo_url=escaped_repo_url) + "\n",
         encoding="utf-8",
     )
 
