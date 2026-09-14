@@ -18,6 +18,13 @@ from common import (
 from inspect_apk import inspect_apk
 
 DEFAULT_ARCHES = {"arm64-v8a", "armeabi-v7a", "x86_64"}
+REPO_ICON_NAME = "icon.png"
+REPO_ICON_FALLBACK_URL = "https://cdn.jsdelivr.net/gh/selfhst/icons@main/png/plezy.png"
+REPO_ICON_FALLBACK_SHA256 = "d7f9084479aa4034c7df277e52e1668a571473955f719aff6c815ab30869ba40"
+LOCAL_REPO_ICON_CANDIDATES = (
+    Path(REPO_ICON_NAME),
+    Path("fdroid") / REPO_ICON_NAME,
+)
 
 
 def select_releases(
@@ -51,6 +58,32 @@ def clear_repo_apks(repo_dir: Path) -> None:
 def copy_apk_to_repo(apk_path: Path, output_path: Path) -> None:
     output_path.parent.mkdir(parents=True, exist_ok=True)
     shutil.copy2(apk_path, output_path)
+
+
+def ensure_repo_icon(repo_dir: Path, project_dir: Path | None = None) -> None:
+    icon_path = repo_dir / "icons" / REPO_ICON_NAME
+    if icon_path.exists():
+        return
+
+    icon_path.parent.mkdir(parents=True, exist_ok=True)
+    root_dir = project_dir or Path(__file__).resolve().parents[1]
+    for relative_icon_path in LOCAL_REPO_ICON_CANDIDATES:
+        legacy_icon_path = root_dir / relative_icon_path
+        if not legacy_icon_path.exists():
+            continue
+        shutil.copy2(legacy_icon_path, icon_path)
+        print(f"[icon] Copied legacy repo icon from {legacy_icon_path} to {icon_path}")
+        return
+
+    with tempfile.TemporaryDirectory() as tmp:
+        downloaded_icon_path = Path(tmp) / REPO_ICON_NAME
+        download_with_cache(
+            REPO_ICON_FALLBACK_URL,
+            downloaded_icon_path,
+            expected_sha256=REPO_ICON_FALLBACK_SHA256,
+        )
+        downloaded_icon_path.replace(icon_path)
+    print(f"[icon] Downloaded fallback repo icon to {icon_path}")
 
 
 def process_release(
@@ -172,6 +205,7 @@ def main() -> None:
         raise ValueError("No valid Plezy Android releases were selected")
 
     clear_repo_apks(repo_dir)
+    ensure_repo_icon(repo_dir)
 
     all_artifacts: list[dict[str, object]] = []
     seen_version_codes: dict[tuple[str, int, str], str] = {}
