@@ -16,7 +16,7 @@ from urllib.parse import quote
 from urllib.request import Request, urlopen
 
 GITHUB_API = "https://api.github.com"
-ANDROID_ASSET_PATTERN = re.compile(r"^plezy-android-(?P<arch>[^/]+)\\.tar\\.gz$")
+ANDROID_ASSET_PATTERN = re.compile(r"^plezy-android-(?P<arch>[^/]+)\.tar\.gz$")
 
 
 @dataclass(frozen=True)
