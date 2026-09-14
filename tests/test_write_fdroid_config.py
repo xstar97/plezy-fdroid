@@ -35,6 +35,15 @@ class DetectKeystoreTypeTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "Unable to determine keystore type"):
             MODULE.detect_keystore_type("/tmp/test.jks", "store-pass")
 
+    @mock.patch.object(MODULE.subprocess, "run")
+    def test_detect_keystore_type_includes_keytool_stderr(self, run_mock):
+        run_mock.side_effect = MODULE.subprocess.CalledProcessError(
+            returncode=1, cmd=["keytool"], stderr="keystore tampered with, or password was incorrect"
+        )
+
+        with self.assertRaisesRegex(ValueError, "keystore tampered"):
+            MODULE.detect_keystore_type("/tmp/test.jks", "store-pass")
+
 
 class MainTests(unittest.TestCase):
     def test_main_uses_store_password_for_pkcs12(self):
@@ -77,6 +86,26 @@ class MainTests(unittest.TestCase):
             ):
                 with self.assertRaisesRegex(ValueError, "FDROID_KEY_PASSWORD is required"):
                     MODULE.main()
+
+    def test_main_preserves_key_password_for_non_pkcs12(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            config_path = Path(tmp) / "config.yml"
+            env = {
+                "FDROID_KEYSTORE_PATH": "/tmp/fdroid-keystore.jks",
+                "FDROID_KEYSTORE_PASSWORD": "store-pass",
+                "FDROID_KEY_PASSWORD": "separate-key-pass",
+                "FDROID_KEY_ALIAS": "alias",
+                "REPO_NAME": "Repo Name",
+                "REPO_URL": "https://example.com/repo",
+                "FDROID_CONFIG_PATH": str(config_path),
+            }
+            with mock.patch.dict(os.environ, env, clear=False), mock.patch.object(
+                MODULE, "detect_keystore_type", return_value="JKS"
+            ):
+                MODULE.main()
+
+            config = yaml.safe_load(config_path.read_text(encoding="utf-8"))
+            self.assertEqual(config["keypass"], "separate-key-pass")
 
 
 if __name__ == "__main__":

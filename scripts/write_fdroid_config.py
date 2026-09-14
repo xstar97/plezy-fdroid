@@ -16,20 +16,24 @@ def clean(value: str) -> str:
 
 def detect_keystore_type(keystore_path: str, keystore_password: str) -> str:
     env = {**os.environ, "LC_ALL": "C", "LANG": "C", "FDROID_KEYSTORE_PASSWORD": keystore_password}
-    result = subprocess.run(
-        [
-            "keytool",
-            "-list",
-            "-keystore",
-            keystore_path,
-            "-storepass:env",
-            "FDROID_KEYSTORE_PASSWORD",
-        ],
-        check=True,
-        capture_output=True,
-        text=True,
-        env=env,
-    )
+    try:
+        result = subprocess.run(
+            [
+                "keytool",
+                "-list",
+                "-keystore",
+                keystore_path,
+                "-storepass:env",
+                "FDROID_KEYSTORE_PASSWORD",
+            ],
+            check=True,
+            capture_output=True,
+            text=True,
+            env=env,
+        )
+    except subprocess.CalledProcessError as exc:
+        details = (exc.stderr or "").strip() or "unknown keytool error"
+        raise ValueError(f"Failed to inspect keystore type: {details}") from exc
 
     for line in result.stdout.splitlines():
         if line.startswith("Keystore type:"):
