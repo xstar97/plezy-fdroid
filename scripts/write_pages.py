@@ -5,7 +5,7 @@ from __future__ import annotations
 import argparse
 from html import escape
 from pathlib import Path
-from urllib.parse import unquote, urlsplit, urlunsplit
+from urllib.parse import urlsplit, urlunsplit
 
 
 ROOT_TEMPLATE = """<!doctype html>
@@ -122,7 +122,9 @@ def parse_args() -> argparse.Namespace:
 
 def normalize_pages_base_url(pages_base_url: str) -> str:
     parts = urlsplit(pages_base_url.strip())
-    normalized_path = unquote(parts.path).rstrip("/")
+    if not parts.scheme or not parts.netloc:
+        raise ValueError("--pages-base-url must be an absolute URL")
+    normalized_path = parts.path.rstrip("/")
     return urlunsplit((parts.scheme, parts.netloc, normalized_path, "", ""))
 
 
