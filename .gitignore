@@ -1,0 +1,11 @@
+__pycache__/
+*.pyc
+.cache/
+
+fdroid/repo/*
+!fdroid/repo/.gitkeep
+fdroid/metadata/*
+!fdroid/metadata/.gitkeep
+fdroid/config.yml
+
+*.log

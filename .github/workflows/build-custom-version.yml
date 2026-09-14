@@ -1,0 +1,180 @@
+name: Build custom Plezy versions
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: "Plezy version/tag to add"
+        required: false
+      versions:
+        description: "Optional comma-separated list of Plezy versions"
+        required: false
+      include_latest:
+        description: "Also include the latest 3 versions"
+        required: false
+        type: boolean
+        default: true
+      include_prereleases:
+        description: "Include upstream prereleases"
+        required: false
+        type: boolean
+        default: false
+      publish_to_pages:
+        description: "Publish this custom build to GitHub Pages"
+        required: false
+        type: boolean
+        default: false
+
+permissions:
+  contents: read
+
+concurrency:
+  group: fdroid-pages
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Compute cache epoch
+        id: cache-epoch
+        run: echo "week=$(date +%G-%V)" >> "$GITHUB_OUTPUT"
+
+      - name: Cache Plezy artifacts
+        uses: actions/cache@v4
+        with:
+          path: .cache/plezy
+          key: plezy-cache-${{ runner.os }}-${{ steps.cache-epoch.outputs.week }}-${{ hashFiles('scripts/*.py', 'requirements.txt') }}
+          restore-keys: |
+            plezy-cache-${{ runner.os }}-
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -r requirements.txt
+
+      - name: Build requested versions
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+          INPUT_VERSION: ${{ inputs.version }}
+          INPUT_VERSIONS: ${{ inputs.versions }}
+          INPUT_INCLUDE_LATEST: ${{ inputs.include_latest }}
+          INPUT_INCLUDE_PRERELEASES: ${{ inputs.include_prereleases }}
+        run: |
+          set -euo pipefail
+          ARGS=()
+
+          if [[ "$INPUT_INCLUDE_LATEST" == "true" ]]; then
+            ARGS+=(--latest 3)
+          else
+            ARGS+=(--latest 0)
+          fi
+
+          if [[ "$INPUT_INCLUDE_PRERELEASES" == "true" ]]; then
+            ARGS+=(--include-prereleases)
+          fi
+
+          if [[ -n "${INPUT_VERSION// }" ]]; then
+            ARGS+=(--include-version "$INPUT_VERSION")
+          fi
+
+          if [[ -n "${INPUT_VERSIONS// }" ]]; then
+            IFS=',' read -ra TAGS <<< "$INPUT_VERSIONS"
+            for tag in "${TAGS[@]}"; do
+              cleaned="$(echo "$tag" | sed -e 's/^[[:space:]]*//' -e 's/[[:space:]]*$//')"
+              if [[ -n "$cleaned" ]]; then
+                ARGS+=(--include-version "$cleaned")
+              fi
+            done
+          fi
+
+          python scripts/build_repo.py "${ARGS[@]}"
+
+      - name: Restore F-Droid keystore
+        env:
+          FDROID_KEYSTORE_B64: ${{ secrets.FDROID_KEYSTORE_B64 }}
+        run: |
+          test -n "$FDROID_KEYSTORE_B64" || (echo "Missing FDROID_KEYSTORE_B64 secret" && exit 1)
+          echo "$FDROID_KEYSTORE_B64" | base64 --decode > /tmp/fdroid-keystore.jks
+
+      - name: Write F-Droid config
+        env:
+          FDROID_KEYSTORE_PASSWORD: ${{ secrets.FDROID_KEYSTORE_PASSWORD }}
+          FDROID_KEY_ALIAS: ${{ secrets.FDROID_KEY_ALIAS }}
+          FDROID_KEY_PASSWORD: ${{ secrets.FDROID_KEY_PASSWORD }}
+          FDROID_REPO_NAME: ${{ secrets.FDROID_REPO_NAME }}
+        run: |
+          test -n "$FDROID_KEYSTORE_PASSWORD" || (echo "Missing FDROID_KEYSTORE_PASSWORD secret" && exit 1)
+          test -n "$FDROID_KEY_ALIAS" || (echo "Missing FDROID_KEY_ALIAS secret" && exit 1)
+          test -n "$FDROID_KEY_PASSWORD" || (echo "Missing FDROID_KEY_PASSWORD secret" && exit 1)
+          REPO_NAME="${FDROID_REPO_NAME:-Plezy F-Droid Mirror}" \
+          REPO_URL="https://${{ github.repository_owner }}.github.io/${{ github.event.repository.name }}/repo" \
+          python - <<'PY'
+          import os
+          from pathlib import Path
+          import yaml
+
+          config = {
+              "repo_name": os.environ["REPO_NAME"],
+              "repo_url": os.environ["REPO_URL"],
+              "repo_description": "Mirror of Android Plezy releases from edde746/plezy",
+              "archive_older": 0,
+              "keystore": "/tmp/fdroid-keystore.jks",
+              "keystorepass": os.environ["FDROID_KEYSTORE_PASSWORD"],
+              "keypass": os.environ["FDROID_KEY_PASSWORD"],
+              "repo_keyalias": os.environ["FDROID_KEY_ALIAS"],
+              "make_current_version_link": False,
+          }
+          Path("fdroid/config.yml").write_text(yaml.safe_dump(config, sort_keys=False), encoding="utf-8")
+          PY
+
+      - name: Generate F-Droid index
+        run: |
+          cd fdroid
+          fdroid update --create-metadata --pretty
+
+      - name: Upload custom build artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: custom-fdroid-repo
+          path: fdroid
+
+  publish-pages:
+    if: ${{ inputs.publish_to_pages }}
+    runs-on: ubuntu-latest
+    needs: build
+    permissions:
+      contents: read
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: https://${{ github.repository_owner }}.github.io/${{ github.event.repository.name }}/repo
+
+    steps:
+      - name: Download custom build artifact
+        uses: actions/download-artifact@v4.1.3
+        with:
+          name: custom-fdroid-repo
+          path: fdroid
+
+      - name: Configure GitHub Pages
+        uses: actions/configure-pages@v5
+
+      - name: Upload Pages artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: fdroid
+
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
