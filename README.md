@@ -19,7 +19,7 @@ The detected Plezy Android package ID is `com.edde746.plezy`.
 After the workflow deploys to GitHub Pages, the repository URL is:
 
 ```text
-https://<github-user>.github.io/plezy-fdroid/repo
+https://xstar97.github.io/plezy-fdroid/repo
 ```
 
 ## Supported architectures
