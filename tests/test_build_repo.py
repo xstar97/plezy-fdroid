@@ -49,6 +49,41 @@ class EnsureRepoIconTests(unittest.TestCase):
                 b"legacy",
             )
 
+    def test_copies_fdroid_icon_when_present(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            project_dir = Path(tmp)
+            repo_dir = project_dir / "fdroid" / "repo"
+            legacy_icon_path = project_dir / "fdroid" / MODULE.REPO_ICON_NAME
+            legacy_icon_path.parent.mkdir(parents=True, exist_ok=True)
+            legacy_icon_path.write_bytes(b"fdroid")
+
+            MODULE.ensure_repo_icon(repo_dir, project_dir=project_dir)
+
+            self.assertEqual(
+                (repo_dir / "icons" / MODULE.REPO_ICON_NAME).read_bytes(),
+                b"fdroid",
+            )
+
+    def test_default_project_lookup_uses_module_root(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            project_dir = Path(tmp)
+            (project_dir / "scripts").mkdir()
+            repo_dir = project_dir / "fdroid" / "repo"
+            legacy_icon_path = project_dir / MODULE.REPO_ICON_NAME
+            legacy_icon_path.write_bytes(b"default")
+
+            with mock.patch.object(
+                MODULE,
+                "__file__",
+                str(project_dir / "scripts" / "build_repo.py"),
+            ):
+                MODULE.ensure_repo_icon(repo_dir)
+
+            self.assertEqual(
+                (repo_dir / "icons" / MODULE.REPO_ICON_NAME).read_bytes(),
+                b"default",
+            )
+
     def test_downloads_fallback_icon_when_local_icon_missing(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
             project_dir = Path(tmp)

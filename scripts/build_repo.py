@@ -21,6 +21,10 @@ DEFAULT_ARCHES = {"arm64-v8a", "armeabi-v7a", "x86_64"}
 REPO_ICON_NAME = "icon.png"
 REPO_ICON_FALLBACK_URL = "https://cdn.jsdelivr.net/gh/selfhst/icons@main/png/plezy.png"
 REPO_ICON_FALLBACK_SHA256 = "d7f9084479aa4034c7df277e52e1668a571473955f719aff6c815ab30869ba40"
+LOCAL_REPO_ICON_CANDIDATES = (
+    Path(REPO_ICON_NAME),
+    Path("fdroid") / REPO_ICON_NAME,
+)
 
 
 def select_releases(
@@ -63,9 +67,10 @@ def ensure_repo_icon(repo_dir: Path, project_dir: Path | None = None) -> None:
 
     icon_path.parent.mkdir(parents=True, exist_ok=True)
     root_dir = project_dir or Path(__file__).resolve().parents[1]
-    legacy_icon_path = root_dir / REPO_ICON_NAME
-
-    if legacy_icon_path.exists():
+    for relative_icon_path in LOCAL_REPO_ICON_CANDIDATES:
+        legacy_icon_path = root_dir / relative_icon_path
+        if not legacy_icon_path.exists():
+            continue
         shutil.copy2(legacy_icon_path, icon_path)
         print(f"[icon] Copied legacy repo icon from {legacy_icon_path} to {icon_path}")
         return
