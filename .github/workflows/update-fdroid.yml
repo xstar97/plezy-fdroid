@@ -83,30 +83,60 @@ jobs:
         run: |
           test -n "$FDROID_KEYSTORE_PASSWORD" || (echo "Missing FDROID_KEYSTORE_PASSWORD secret" && exit 1)
           test -n "$FDROID_KEY_ALIAS" || (echo "Missing FDROID_KEY_ALIAS secret" && exit 1)
-          test -n "$FDROID_KEY_PASSWORD" || (echo "Missing FDROID_KEY_PASSWORD secret" && exit 1)
           REPO_NAME="${FDROID_REPO_NAME:-Plezy F-Droid Mirror}" \
           REPO_URL="https://${{ github.repository_owner }}.github.io/${{ github.event.repository.name }}/repo" \
           python - <<'PY'
           import os
           from pathlib import Path
+          import subprocess
           import yaml
 
           def clean(value: str) -> str:
               return value.rstrip("\r\n")
 
           keystore_password = os.environ["FDROID_KEYSTORE_PASSWORD"]
-          key_password = os.environ["FDROID_KEY_PASSWORD"]
+          configured_key_password = os.environ.get("FDROID_KEY_PASSWORD", "")
           key_alias = clean(os.environ["FDROID_KEY_ALIAS"])
           repo_name = clean(os.environ["REPO_NAME"])
 
           if not keystore_password:
               raise ValueError("FDROID_KEYSTORE_PASSWORD resolves to empty")
-          if not key_password:
-              raise ValueError("FDROID_KEY_PASSWORD resolves to empty")
           if not key_alias:
               raise ValueError("FDROID_KEY_ALIAS resolves to empty after newline trimming")
           if not repo_name:
               raise ValueError("FDROID_REPO_NAME resolves to empty after newline trimming")
+
+          keystore_info = subprocess.run(
+              [
+                  "keytool",
+                  "-list",
+                  "-keystore",
+                  "/tmp/fdroid-keystore.jks",
+                  "-storepass",
+                  keystore_password,
+              ],
+              check=True,
+              capture_output=True,
+              text=True,
+          ).stdout
+
+          keystore_type = ""
+          for line in keystore_info.splitlines():
+              if line.startswith("Keystore type:"):
+                  keystore_type = line.split(":", 1)[1].strip().upper()
+                  break
+
+          if keystore_type == "PKCS12":
+              if configured_key_password and configured_key_password != keystore_password:
+                  print(
+                      "::warning::FDROID_KEY_PASSWORD differs from the PKCS12 key password. "
+                      "Using FDROID_KEYSTORE_PASSWORD for keypass."
+                  )
+              key_password = keystore_password
+          else:
+              key_password = configured_key_password
+              if not key_password:
+                  raise ValueError("FDROID_KEY_PASSWORD is required for non-PKCS12 keystores")
 
           config = {
               "repo_name": repo_name,
