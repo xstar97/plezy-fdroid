@@ -1,5 +1,6 @@
 import importlib.util
 import os
+import stat
 import tempfile
 import unittest
 from pathlib import Path
@@ -50,13 +51,15 @@ class MainTests(unittest.TestCase):
             }
             with mock.patch.dict(os.environ, env, clear=False), mock.patch.object(
                 MODULE, "detect_keystore_type", return_value="PKCS12"
-            ):
+            ), mock.patch("builtins.print") as print_mock:
                 MODULE.main()
 
             config = yaml.safe_load(config_path.read_text(encoding="utf-8"))
             self.assertEqual(config["keypass"], "store-pass")
             self.assertEqual(config["repo_keyalias"], "alias")
             self.assertEqual(config["repo_name"], "Repo Name")
+            self.assertIn("FDROID_KEY_PASSWORD differs", print_mock.call_args.args[0])
+            self.assertEqual(stat.S_IMODE(config_path.stat().st_mode), 0o600)
 
     def test_main_requires_key_password_for_non_pkcs12(self):
         with tempfile.TemporaryDirectory() as tmp:

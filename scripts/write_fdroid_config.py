@@ -4,7 +4,6 @@
 from __future__ import annotations
 
 import os
-import stat
 import subprocess
 from pathlib import Path
 
@@ -81,8 +80,11 @@ def main() -> None:
         "repo_keyalias": key_alias,
         "make_current_version_link": False,
     }
-    config_path.write_text(yaml.safe_dump(config, sort_keys=False), encoding="utf-8")
-    config_path.chmod(stat.S_IRUSR | stat.S_IWUSR)
+    config_path.parent.mkdir(parents=True, exist_ok=True)
+    config_text = yaml.safe_dump(config, sort_keys=False)
+    fd = os.open(config_path, os.O_WRONLY | os.O_CREAT | os.O_TRUNC, 0o600)
+    with os.fdopen(fd, "w", encoding="utf-8") as file:
+        file.write(config_text)
 
 
 if __name__ == "__main__":
