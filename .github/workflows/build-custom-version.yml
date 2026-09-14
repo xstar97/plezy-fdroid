@@ -152,6 +152,7 @@ jobs:
               check=True,
               capture_output=True,
               text=True,
+              env={**os.environ, "LC_ALL": "C", "LANG": "C"},
           ).stdout
 
           keystore_type = ""
