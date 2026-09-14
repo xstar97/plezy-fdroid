@@ -1,0 +1,207 @@
+from __future__ import annotations
+
+import argparse
+import json
+import shutil
+import tempfile
+from dataclasses import asdict
+from pathlib import Path
+
+from common import (
+    AssetInfo,
+    ReleaseInfo,
+    download_with_cache,
+    expected_sha_from_digest,
+    extract_single_apk,
+    fetch_release_by_tag,
+    list_android_releases,
+)
+from inspect_apk import inspect_apk
+
+DEFAULT_ARCHES = {"arm64-v8a", "armeabi-v7a", "x86_64"}
+
+
+def select_releases(
+    owner: str,
+    repo: str,
+    latest: int,
+    include_versions: list[str],
+    include_prereleases: bool,
+) -> list[ReleaseInfo]:
+    selected: dict[str, ReleaseInfo] = {}
+
+    if latest > 0:
+        for release in list_android_releases(owner, repo, include_prereleases)[:latest]:
+            selected[release.tag] = release
+
+    for tag in include_versions:
+        release = fetch_release_by_tag(owner, repo, tag, include_prereleases)
+        selected[release.tag] = release
+
+    releases = list(selected.values())
+    releases.sort(key=lambda r: r.published_at, reverse=True)
+    return releases
+
+
+def clear_repo_apks(repo_dir: Path) -> None:
+    repo_dir.mkdir(parents=True, exist_ok=True)
+    for apk_file in repo_dir.glob("*.apk"):
+        apk_file.unlink()
+
+
+def copy_apk_to_repo(apk_path: Path, output_path: Path) -> None:
+    output_path.parent.mkdir(parents=True, exist_ok=True)
+    shutil.copy2(apk_path, output_path)
+
+
+def process_release(
+    release: ReleaseInfo,
+    cache_dir: Path,
+    repo_dir: Path,
+    seen_version_codes: dict[tuple[str, int], str],
+) -> list[dict[str, object]]:
+    artifacts: list[dict[str, object]] = []
+    release_arches = {asset.arch for asset in release.assets}
+    missing_expected = sorted(DEFAULT_ARCHES - release_arches)
+    if missing_expected:
+        print(
+            f"[warn] {release.tag} missing expected Android assets: {', '.join(missing_expected)}"
+        )
+
+    for asset in release.assets:
+        artifact = process_asset(release, asset, cache_dir, repo_dir, seen_version_codes)
+        artifacts.append(artifact)
+
+    return artifacts
+
+
+def process_asset(
+    release: ReleaseInfo,
+    asset: AssetInfo,
+    cache_dir: Path,
+    repo_dir: Path,
+    seen_version_codes: dict[tuple[str, int], str],
+) -> dict[str, object]:
+    expected_sha256 = expected_sha_from_digest(asset.digest)
+    archive_path = cache_dir / "archives" / release.tag / asset.name
+    download_with_cache(asset.url, archive_path, expected_sha256=expected_sha256)
+
+    with tempfile.TemporaryDirectory() as tmp:
+        extracted_apk = extract_single_apk(archive_path, Path(tmp))
+        metadata = inspect_apk(extracted_apk)
+        output_name = f"{metadata.package}_{metadata.version_code}_{asset.arch}.apk"
+        output_path = repo_dir / output_name
+
+        version_key = (metadata.package, metadata.version_code)
+        prior_sha = seen_version_codes.get(version_key)
+        if prior_sha and prior_sha != metadata.sha256:
+            raise ValueError(
+                f"Conflicting APK content for {metadata.package} versionCode {metadata.version_code}"
+            )
+        seen_version_codes[version_key] = metadata.sha256
+
+        copy_apk_to_repo(extracted_apk, output_path)
+
+    if metadata.supported_abis and asset.arch not in metadata.supported_abis:
+        print(
+            f"[warn] ABI mismatch for {release.tag}: asset arch={asset.arch}, "
+            f"apk abis={','.join(metadata.supported_abis)}"
+        )
+
+    print(
+        "[apk]"
+        f" release={release.tag}"
+        f" arch={asset.arch}"
+        f" file={output_name}"
+        f" package={metadata.package}"
+        f" versionName={metadata.version_name}"
+        f" versionCode={metadata.version_code}"
+        f" sha256={metadata.sha256}"
+    )
+
+    return {
+        "release_tag": release.tag,
+        "release_published_at": release.published_at,
+        "asset_name": asset.name,
+        "asset_arch": asset.arch,
+        "asset_digest": asset.digest,
+        "output_filename": output_name,
+        "apk": {
+            "package": metadata.package,
+            "version_name": metadata.version_name,
+            "version_code": metadata.version_code,
+            "min_sdk": metadata.min_sdk,
+            "target_sdk": metadata.target_sdk,
+            "supported_abis": list(metadata.supported_abis),
+            "sha256": metadata.sha256,
+        },
+    }
+
+
+def parse_args() -> argparse.Namespace:
+    parser = argparse.ArgumentParser(description="Build Plezy F-Droid APK set")
+    parser.add_argument("--owner", default="edde746")
+    parser.add_argument("--repo", default="plezy")
+    parser.add_argument("--latest", type=int, default=10)
+    parser.add_argument("--include-version", action="append", default=[])
+    parser.add_argument("--include-prereleases", action="store_true")
+    parser.add_argument("--cache-dir", type=Path, default=Path(".cache/plezy"))
+    parser.add_argument("--fdroid-dir", type=Path, default=Path("fdroid"))
+    parser.add_argument(
+        "--report",
+        type=Path,
+        default=Path("fdroid/repo/build-report.json"),
+        help="Output JSON report path",
+    )
+    return parser.parse_args()
+
+
+def main() -> None:
+    args = parse_args()
+    repo_dir = args.fdroid_dir / "repo"
+
+    include_versions = [tag for tag in args.include_version if tag.strip()]
+    releases = select_releases(
+        owner=args.owner,
+        repo=args.repo,
+        latest=max(args.latest, 0),
+        include_versions=include_versions,
+        include_prereleases=args.include_prereleases,
+    )
+    if not releases:
+        raise ValueError("No valid Plezy Android releases were selected")
+
+    clear_repo_apks(repo_dir)
+
+    all_artifacts: list[dict[str, object]] = []
+    seen_version_codes: dict[tuple[str, int], str] = {}
+    for release in releases:
+        artifacts = process_release(
+            release=release,
+            cache_dir=args.cache_dir,
+            repo_dir=repo_dir,
+            seen_version_codes=seen_version_codes,
+        )
+        all_artifacts.extend(artifacts)
+
+    args.report.parent.mkdir(parents=True, exist_ok=True)
+    args.report.write_text(
+        json.dumps(
+            {
+                "source": f"{args.owner}/{args.repo}",
+                "latest": args.latest,
+                "include_versions": include_versions,
+                "include_prereleases": args.include_prereleases,
+                "selected_releases": [release.tag for release in releases],
+                "artifacts": all_artifacts,
+            },
+            indent=2,
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+    print(f"[done] Wrote {len(all_artifacts)} APK artifacts for {len(releases)} releases")
+
+
+if __name__ == "__main__":
+    main()

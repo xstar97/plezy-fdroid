@@ -1,0 +1,9 @@
+repo_name: "Plezy F-Droid Mirror"
+repo_url: "https://<github-user>.github.io/plezy-fdroid/repo"
+repo_description: "Mirror of Android Plezy releases from edde746/plezy"
+archive_older: 0
+keystore: /tmp/fdroid-keystore.jks
+keystorepass: "<from-secret>"
+keypass: "<from-secret>"
+repo_keyalias: "<from-secret>"
+make_current_version_link: false
