@@ -150,7 +150,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument(
         "--report",
         type=Path,
-        default=Path("fdroid/repo/build-report.json"),
+        default=Path("fdroid/build-report.json"),
         help="Output JSON report path",
     )
     return parser.parse_args()

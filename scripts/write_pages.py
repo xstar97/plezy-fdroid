@@ -96,7 +96,7 @@ REPO_TEMPLATE = """<!doctype html>
       <ul>
         <li><a href="./index-v1.json">index-v1.json</a></li>
         <li><a href="./index-v1.jar">index-v1.jar</a></li>
-        <li><a href="./build-report.json">build-report.json</a></li>
+        <li><a href="../build-report.json">build-report.json</a></li>
       </ul>
     </main>
   </body>
