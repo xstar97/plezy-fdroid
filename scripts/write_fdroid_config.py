@@ -85,6 +85,7 @@ def main() -> None:
     fd = os.open(config_path, os.O_WRONLY | os.O_CREAT | os.O_TRUNC, 0o600)
     with os.fdopen(fd, "w", encoding="utf-8") as file:
         file.write(config_text)
+    os.chmod(config_path, 0o600)
 
 
 if __name__ == "__main__":
