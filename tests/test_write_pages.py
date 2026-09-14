@@ -53,6 +53,10 @@ class WritePagesOutputTests(unittest.TestCase):
                 repo_url,
                 (fdroid_dir / "repo" / "index.html").read_text(encoding="utf-8"),
             )
+            self.assertIn(
+                "../build-report.json",
+                (fdroid_dir / "repo" / "index.html").read_text(encoding="utf-8"),
+            )
 
 
 if __name__ == "__main__":
