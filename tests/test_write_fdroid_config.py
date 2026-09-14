@@ -67,6 +67,7 @@ class MainTests(unittest.TestCase):
             self.assertEqual(config["keypass"], "store-pass")
             self.assertEqual(config["repo_keyalias"], "alias")
             self.assertEqual(config["repo_name"], "Repo Name")
+            self.assertEqual(config["repo_icon"], "icon.png")
             self.assertIn("FDROID_KEY_PASSWORD differs", print_mock.call_args.args[0])
             self.assertEqual(stat.S_IMODE(config_path.stat().st_mode), 0o600)
 
