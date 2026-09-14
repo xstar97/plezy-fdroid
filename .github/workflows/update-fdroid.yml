@@ -1,6 +1,14 @@
 name: Update Plezy F-Droid repository
 
 on:
+  push:
+    branches:
+      - main
+    paths:
+      - .github/workflows/update-fdroid.yml
+      - fdroid/**
+      - requirements.txt
+      - scripts/**
   schedule:
     - cron: "17 3 * * *"
   workflow_dispatch:
