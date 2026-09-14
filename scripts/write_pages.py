@@ -1,8 +1,11 @@
+"""Write GitHub Pages landing files for the published F-Droid repository."""
+
 from __future__ import annotations
 
 import argparse
 from html import escape
 from pathlib import Path
+from urllib.parse import unquote, urlsplit, urlunsplit
 
 
 ROOT_TEMPLATE = """<!doctype html>
@@ -103,16 +106,32 @@ REPO_TEMPLATE = """<!doctype html>
 
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="Write GitHub Pages landing files")
-    parser.add_argument("--fdroid-dir", type=Path, default=Path("fdroid"))
-    parser.add_argument("--pages-base-url", required=True)
+    parser.add_argument(
+        "--fdroid-dir",
+        type=Path,
+        default=Path("fdroid"),
+        help="F-Droid site directory where .nojekyll plus root/repo landing pages are written.",
+    )
+    parser.add_argument(
+        "--pages-base-url",
+        required=True,
+        help="Configured GitHub Pages site base URL, for example https://xstar97.github.io/plezy-fdroid.",
+    )
     return parser.parse_args()
+
+
+def normalize_pages_base_url(pages_base_url: str) -> str:
+    parts = urlsplit(pages_base_url.strip())
+    normalized_path = unquote(parts.path).rstrip("/")
+    return urlunsplit((parts.scheme, parts.netloc, normalized_path, "", ""))
 
 
 def main() -> None:
     args = parse_args()
     repo_dir = args.fdroid_dir / "repo"
     repo_dir.mkdir(parents=True, exist_ok=True)
-    repo_url = f"{args.pages_base_url.rstrip('/')}/repo"
+    pages_base_url = normalize_pages_base_url(args.pages_base_url)
+    repo_url = f"{pages_base_url}/repo"
     escaped_repo_url = escape(repo_url, quote=True)
 
     (args.fdroid_dir / ".nojekyll").write_text("", encoding="utf-8")
