@@ -78,9 +78,9 @@ jobs:
           REPO_NAME="${FDROID_REPO_NAME:-Plezy F-Droid Mirror}" \
           REPO_URL="https://${{ github.repository_owner }}.github.io/${{ github.event.repository.name }}/repo" \
           python - <<'PY'
-          import json
           import os
           from pathlib import Path
+          import yaml
 
           config = {
               "repo_name": os.environ["REPO_NAME"],
@@ -93,7 +93,7 @@ jobs:
               "repo_keyalias": os.environ["FDROID_KEY_ALIAS"],
               "make_current_version_link": False,
           }
-          Path("fdroid/config.yml").write_text(json.dumps(config, indent=2) + "\n", encoding="utf-8")
+          Path("fdroid/config.yml").write_text(yaml.safe_dump(config, sort_keys=False), encoding="utf-8")
           PY
 
       - name: Generate F-Droid index

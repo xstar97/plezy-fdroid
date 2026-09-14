@@ -57,16 +57,8 @@ def github_get(path: str, token: str | None = None) -> Any:
     if auth_token:
         headers["Authorization"] = "token " + auth_token
     request = Request(f"{GITHUB_API}{path}", headers=headers)
-    try:
-        with urlopen(request) as response:
-            return json.loads(response.read().decode("utf-8"))
-    except HTTPError as error:
-        if auth_token and error.code in {401, 403}:
-            headers.pop("Authorization", None)
-            retry = Request(f"{GITHUB_API}{path}", headers=headers)
-            with urlopen(retry) as response:
-                return json.loads(response.read().decode("utf-8"))
-        raise
+    with urlopen(request) as response:
+        return json.loads(response.read().decode("utf-8"))
 
 
 def _release_from_api_item(item: dict[str, Any]) -> ReleaseInfo | None:
