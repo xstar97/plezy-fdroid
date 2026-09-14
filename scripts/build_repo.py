@@ -142,7 +142,7 @@ def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="Build Plezy F-Droid APK set")
     parser.add_argument("--owner", default="edde746")
     parser.add_argument("--repo", default="plezy")
-    parser.add_argument("--latest", type=int, default=10)
+    parser.add_argument("--latest", type=int, default=3)
     parser.add_argument("--include-version", action="append", default=[])
     parser.add_argument("--include-prereleases", action="store_true")
     parser.add_argument("--cache-dir", type=Path, default=Path(".cache/plezy"))

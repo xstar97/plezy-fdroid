@@ -53,12 +53,12 @@ jobs:
           python -m pip install --upgrade pip
           python -m pip install -r requirements.txt
 
-      - name: Build APK set (latest 10)
+      - name: Build APK set (latest 3)
         env:
           GITHUB_TOKEN: ${{ github.token }}
           INPUT_INCLUDE_PRERELEASES: ${{ inputs.include_prereleases }}
         run: |
-          ARGS=(--latest 10)
+          ARGS=(--latest 3)
           if [[ "$INPUT_INCLUDE_PRERELEASES" == "true" ]]; then
             ARGS+=(--include-prereleases)
           fi

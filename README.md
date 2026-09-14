@@ -5,7 +5,7 @@ This repository mirrors Android releases from [`edde746/plezy`](https://github.c
 ## What it does
 
 - Discovers upstream GitHub Releases using the GitHub API.
-- Selects the latest 10 Plezy Android releases by default.
+- Selects the latest 3 Plezy Android releases by default.
 - Downloads `plezy-android-*.tar.gz` release assets and verifies GitHub-provided SHA256 digests when available.
 - Securely extracts APKs (with tar path traversal protection).
 - Inspects APK metadata from the APK itself (package ID, versionName, versionCode, minSdkVersion, targetSdkVersion, supported ABI).
@@ -34,8 +34,8 @@ Architecture discovery is dynamic, so added/removed upstream Android architectur
 
 ## Version policy
 
-- Automatic workflow: newest **10** upstream Plezy releases containing Android assets.
-- Manual workflow: request specific older/newer versions, optionally combined with latest 10.
+- Automatic workflow: newest **3** upstream Plezy releases containing Android assets.
+- Manual workflow: request specific older/newer versions, optionally combined with latest 3.
 
 ## Workflows
 
@@ -45,7 +45,7 @@ Workflow: `.github/workflows/update-fdroid.yml`
 
 - Runs daily.
 - Also supports manual trigger.
-- Builds latest 10 valid Android releases and publishes to GitHub Pages.
+- Builds latest 3 valid Android releases and publishes to GitHub Pages.
 
 ### Manual custom generation
 
@@ -61,7 +61,7 @@ Workflow: `.github/workflows/build-custom-version.yml`
 
 If `include_latest=true`, output includes:
 
-- latest 10 Android-capable releases
+- latest 3 Android-capable releases
 - plus all requested manual versions
 
 Manual runs always upload a `custom-fdroid-repo` workflow artifact.
@@ -124,15 +124,15 @@ This reuses the same signing identity across all updates.
 Examples:
 
 ```bash
-python scripts/build_repo.py --latest 10
+python scripts/build_repo.py --latest 3
 ```
 
 ```bash
-python scripts/build_repo.py --latest 10 --include-version v1.5.0
+python scripts/build_repo.py --latest 3 --include-version v1.5.0
 ```
 
 ```bash
-python scripts/build_repo.py --latest 10 --include-version v1.5.0 --include-version v1.8.2
+python scripts/build_repo.py --latest 3 --include-version v1.5.0 --include-version v1.8.2
 ```
 
 The build script logs release, architecture, output APK name, package, versionName, versionCode, and SHA256.

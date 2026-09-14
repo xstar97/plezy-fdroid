@@ -10,7 +10,7 @@ def main() -> None:
     parser = argparse.ArgumentParser(description="Discover Plezy Android releases")
     parser.add_argument("--owner", default="edde746")
     parser.add_argument("--repo", default="plezy")
-    parser.add_argument("--latest", type=int, default=10)
+    parser.add_argument("--latest", type=int, default=3)
     parser.add_argument("--include-prereleases", action="store_true")
     args = parser.parse_args()
 

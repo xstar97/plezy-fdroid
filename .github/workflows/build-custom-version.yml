@@ -10,7 +10,7 @@ on:
         description: "Optional comma-separated list of Plezy versions"
         required: false
       include_latest:
-        description: "Also include the latest 10 versions"
+        description: "Also include the latest 3 versions"
         required: false
         type: boolean
         default: true
@@ -74,7 +74,7 @@ jobs:
           ARGS=()
 
           if [[ "$INPUT_INCLUDE_LATEST" == "true" ]]; then
-            ARGS+=(--latest 10)
+            ARGS+=(--latest 3)
           else
             ARGS+=(--latest 0)
           fi
