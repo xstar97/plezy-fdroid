@@ -16,10 +16,10 @@ The detected Plezy Android package ID is `com.edde746.plezy`.
 
 ## Repository URL for F-Droid clients
 
-After GitHub Pages is enabled, the repository URL is:
+After the workflow deploys to GitHub Pages, the repository URL is:
 
 ```text
-https://<github-user>.github.io/plezy-fdroid/repo
+https://xstar97.github.io/plezy-fdroid/repo
 ```
 
 ## Supported architectures
@@ -43,6 +43,7 @@ Architecture discovery is dynamic, so added/removed upstream Android architectur
 
 Workflow: `.github/workflows/update-fdroid.yml`
 
+- Runs on pushes to `main`.
 - Runs daily.
 - Also supports manual trigger.
 - Builds latest 3 valid Android releases and publishes to GitHub Pages.
