@@ -142,11 +142,6 @@ jobs:
           cd fdroid
           fdroid update --create-metadata --pretty
 
-      - name: Write GitHub Pages landing files
-        env:
-          PAGES_REPO_URL: https://${{ github.repository_owner }}.github.io/${{ github.event.repository.name }}/repo
-        run: python scripts/write_pages.py --fdroid-dir fdroid --repo-url "$PAGES_REPO_URL"
-
       - name: Upload custom build artifact
         uses: actions/upload-artifact@v4
         with:
@@ -173,7 +168,13 @@ jobs:
           path: fdroid
 
       - name: Configure GitHub Pages
+        id: pages
         uses: actions/configure-pages@v5
+
+      - name: Write GitHub Pages landing files
+        env:
+          PAGES_REPO_URL: ${{ steps.pages.outputs.base_url }}/repo
+        run: python scripts/write_pages.py --fdroid-dir fdroid --repo-url "$PAGES_REPO_URL"
 
       - name: Upload Pages artifact
         uses: actions/upload-pages-artifact@v3
