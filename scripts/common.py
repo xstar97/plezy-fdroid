@@ -156,6 +156,8 @@ def fetch_release_by_tag(
                 )
             return release
         except HTTPError as error:
+            if error.code != 404:
+                raise
             last_error = error
             continue
 
@@ -235,7 +237,7 @@ def extract_single_apk(archive_path: Path, destination_dir: Path) -> Path:
             raise ValueError(f"Failed to extract APK from archive: {archive_path}")
 
         output_path = destination_dir / apk_member_path_name(apk_member.name)
-        with output_path.open("wb") as out:
+        with fileobj, output_path.open("wb") as out:
             shutil.copyfileobj(fileobj, out)
 
     return output_path

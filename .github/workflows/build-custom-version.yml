@@ -27,19 +27,14 @@ on:
 
 permissions:
   contents: read
-  pages: write
-  id-token: write
 
 concurrency:
   group: fdroid-pages
   cancel-in-progress: false
 
 jobs:
-  build-and-publish:
+  build:
     runs-on: ubuntu-latest
-    environment:
-      name: github-pages
-      url: https://${{ github.repository_owner }}.github.io/${{ github.event.repository.name }}/repo
 
     steps:
       - name: Checkout
@@ -153,17 +148,33 @@ jobs:
           name: custom-fdroid-repo
           path: fdroid
 
+  publish-pages:
+    if: ${{ inputs.publish_to_pages }}
+    runs-on: ubuntu-latest
+    needs: build
+    permissions:
+      contents: read
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: https://${{ github.repository_owner }}.github.io/${{ github.event.repository.name }}/repo
+
+    steps:
+      - name: Download custom build artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: custom-fdroid-repo
+          path: fdroid
+
       - name: Configure GitHub Pages
-        if: ${{ inputs.publish_to_pages }}
         uses: actions/configure-pages@v5
 
       - name: Upload Pages artifact
-        if: ${{ inputs.publish_to_pages }}
         uses: actions/upload-pages-artifact@v3
         with:
           path: fdroid
 
       - name: Deploy to GitHub Pages
-        if: ${{ inputs.publish_to_pages }}
         id: deployment
         uses: actions/deploy-pages@v4
