@@ -35,6 +35,8 @@ concurrency:
 jobs:
   build:
     runs-on: ubuntu-latest
+    env:
+      FDROID_KEYSTORE_PATH: /tmp/fdroid-keystore.jks
 
     steps:
       - name: Checkout
@@ -104,7 +106,7 @@ jobs:
           FDROID_KEYSTORE_B64: ${{ secrets.FDROID_KEYSTORE_B64 }}
         run: |
           test -n "$FDROID_KEYSTORE_B64" || (echo "Missing FDROID_KEYSTORE_B64 secret" && exit 1)
-          printf '%s' "$FDROID_KEYSTORE_B64" | base64 --decode > /tmp/fdroid-keystore.jks
+          printf '%s' "$FDROID_KEYSTORE_B64" | base64 --decode > "$FDROID_KEYSTORE_PATH"
 
       - name: Write F-Droid config
         env:
@@ -115,44 +117,9 @@ jobs:
         run: |
           test -n "$FDROID_KEYSTORE_PASSWORD" || (echo "Missing FDROID_KEYSTORE_PASSWORD secret" && exit 1)
           test -n "$FDROID_KEY_ALIAS" || (echo "Missing FDROID_KEY_ALIAS secret" && exit 1)
-          test -n "$FDROID_KEY_PASSWORD" || (echo "Missing FDROID_KEY_PASSWORD secret" && exit 1)
           REPO_NAME="${FDROID_REPO_NAME:-Plezy F-Droid Mirror}" \
           REPO_URL="https://${{ github.repository_owner }}.github.io/${{ github.event.repository.name }}/repo" \
-          python - <<'PY'
-          import os
-          from pathlib import Path
-          import yaml
-
-          def clean(value: str) -> str:
-              return value.rstrip("\r\n")
-
-          keystore_password = os.environ["FDROID_KEYSTORE_PASSWORD"]
-          key_password = os.environ["FDROID_KEY_PASSWORD"]
-          key_alias = clean(os.environ["FDROID_KEY_ALIAS"])
-          repo_name = clean(os.environ["REPO_NAME"])
-
-          if not keystore_password:
-              raise ValueError("FDROID_KEYSTORE_PASSWORD resolves to empty")
-          if not key_password:
-              raise ValueError("FDROID_KEY_PASSWORD resolves to empty")
-          if not key_alias:
-              raise ValueError("FDROID_KEY_ALIAS resolves to empty after newline trimming")
-          if not repo_name:
-              raise ValueError("FDROID_REPO_NAME resolves to empty after newline trimming")
-
-          config = {
-              "repo_name": repo_name,
-              "repo_url": os.environ["REPO_URL"],
-              "repo_description": "Mirror of Android Plezy releases from edde746/plezy",
-              "archive_older": 0,
-              "keystore": "/tmp/fdroid-keystore.jks",
-              "keystorepass": keystore_password,
-              "keypass": key_password,
-              "repo_keyalias": key_alias,
-              "make_current_version_link": False,
-          }
-          Path("fdroid/config.yml").write_text(yaml.safe_dump(config, sort_keys=False), encoding="utf-8")
-          PY
+          python scripts/write_fdroid_config.py
 
       - name: Generate F-Droid index
         run: |
