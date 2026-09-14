@@ -6,9 +6,20 @@ from __future__ import annotations
 import os
 import subprocess
 import errno
+import shutil
+from base64 import b64decode
 from pathlib import Path
 
 import yaml
+
+REPO_ICON_NAME = "icon.png"
+LOCAL_REPO_ICON_CANDIDATES = (
+    Path(REPO_ICON_NAME),
+    Path("fdroid") / REPO_ICON_NAME,
+)
+PLACEHOLDER_ICON_BYTES = b64decode(
+    "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+lm1cAAAAASUVORK5CYII="
+)
 
 
 def clean(value: str) -> str:
@@ -45,6 +56,22 @@ def detect_keystore_type(keystore_path: str, keystore_password: str) -> str:
     raise ValueError("Unable to determine keystore type from keytool output")
 
 
+def ensure_repo_icon(fdroid_dir: Path, project_dir: Path | None = None) -> None:
+    icon_path = fdroid_dir / "repo" / "icons" / REPO_ICON_NAME
+    if icon_path.exists():
+        return
+
+    icon_path.parent.mkdir(parents=True, exist_ok=True)
+    root_dir = project_dir or Path(__file__).resolve().parents[1]
+    for relative_icon_path in LOCAL_REPO_ICON_CANDIDATES:
+        source_icon_path = root_dir / relative_icon_path
+        if source_icon_path.is_file():
+            shutil.copy2(source_icon_path, icon_path)
+            return
+
+    icon_path.write_bytes(PLACEHOLDER_ICON_BYTES)
+
+
 def main() -> None:
     keystore_path = os.environ["FDROID_KEYSTORE_PATH"]
     keystore_password = os.environ["FDROID_KEYSTORE_PASSWORD"]
@@ -53,6 +80,7 @@ def main() -> None:
     repo_name = clean(os.environ["REPO_NAME"])
     repo_url = os.environ["REPO_URL"]
     config_path = Path(os.environ.get("FDROID_CONFIG_PATH", "fdroid/config.yml"))
+    fdroid_dir = Path(os.environ.get("FDROID_DIR", str(config_path.parent)))
 
     if not keystore_password:
         raise ValueError("FDROID_KEYSTORE_PASSWORD resolves to empty")
@@ -73,6 +101,8 @@ def main() -> None:
         key_password = configured_key_password
         if not key_password:
             raise ValueError("FDROID_KEY_PASSWORD is required for non-PKCS12 keystores")
+
+    ensure_repo_icon(fdroid_dir)
 
     config = {
         "repo_name": repo_name,

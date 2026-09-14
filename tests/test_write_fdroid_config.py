@@ -46,6 +46,45 @@ class DetectKeystoreTypeTests(unittest.TestCase):
 
 
 class MainTests(unittest.TestCase):
+    def test_ensure_repo_icon_copies_project_icon(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            project_dir = Path(tmp)
+            fdroid_dir = project_dir / "fdroid"
+            source_icon_path = project_dir / MODULE.REPO_ICON_NAME
+            source_icon_path.write_bytes(b"project-icon")
+
+            MODULE.ensure_repo_icon(fdroid_dir, project_dir=project_dir)
+
+            self.assertEqual(
+                (fdroid_dir / "repo" / "icons" / MODULE.REPO_ICON_NAME).read_bytes(),
+                b"project-icon",
+            )
+
+    def test_ensure_repo_icon_writes_placeholder_without_sources(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            project_dir = Path(tmp)
+            fdroid_dir = project_dir / "fdroid"
+
+            MODULE.ensure_repo_icon(fdroid_dir, project_dir=project_dir)
+
+            self.assertEqual(
+                (fdroid_dir / "repo" / "icons" / MODULE.REPO_ICON_NAME).read_bytes(),
+                MODULE.PLACEHOLDER_ICON_BYTES,
+            )
+
+    def test_ensure_repo_icon_ignores_non_file_sources(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            project_dir = Path(tmp)
+            fdroid_dir = project_dir / "fdroid"
+            (project_dir / MODULE.REPO_ICON_NAME).mkdir()
+
+            MODULE.ensure_repo_icon(fdroid_dir, project_dir=project_dir)
+
+            self.assertEqual(
+                (fdroid_dir / "repo" / "icons" / MODULE.REPO_ICON_NAME).read_bytes(),
+                MODULE.PLACEHOLDER_ICON_BYTES,
+            )
+
     def test_main_uses_store_password_for_pkcs12(self):
         with tempfile.TemporaryDirectory() as tmp:
             config_path = Path(tmp) / "config.yml"
@@ -57,6 +96,7 @@ class MainTests(unittest.TestCase):
                 "REPO_NAME": "Repo Name\r\n",
                 "REPO_URL": "https://example.com/repo",
                 "FDROID_CONFIG_PATH": str(config_path),
+                "FDROID_DIR": str(Path(tmp) / "fdroid"),
             }
             with mock.patch.dict(os.environ, env, clear=False), mock.patch.object(
                 MODULE, "detect_keystore_type", return_value="PKCS12"
@@ -81,6 +121,7 @@ class MainTests(unittest.TestCase):
                 "REPO_NAME": "Repo Name",
                 "REPO_URL": "https://example.com/repo",
                 "FDROID_CONFIG_PATH": str(config_path),
+                "FDROID_DIR": str(Path(tmp) / "fdroid"),
             }
             with mock.patch.dict(os.environ, env, clear=False), mock.patch.object(
                 MODULE, "detect_keystore_type", return_value="JKS"
@@ -99,6 +140,7 @@ class MainTests(unittest.TestCase):
                 "REPO_NAME": "Repo Name",
                 "REPO_URL": "https://example.com/repo",
                 "FDROID_CONFIG_PATH": str(config_path),
+                "FDROID_DIR": str(Path(tmp) / "fdroid"),
             }
             with mock.patch.dict(os.environ, env, clear=False), mock.patch.object(
                 MODULE, "detect_keystore_type", return_value="JKS"
@@ -121,6 +163,7 @@ class MainTests(unittest.TestCase):
                 "REPO_NAME": "Repo Name",
                 "REPO_URL": "https://example.com/repo",
                 "FDROID_CONFIG_PATH": str(config_path),
+                "FDROID_DIR": str(Path(tmp) / "fdroid"),
             }
             with mock.patch.dict(os.environ, env, clear=False), mock.patch.object(
                 MODULE, "detect_keystore_type", return_value="PKCS12"
