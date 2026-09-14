@@ -4,7 +4,6 @@ import argparse
 import json
 import shutil
 import tempfile
-from dataclasses import asdict
 from pathlib import Path
 
 from common import (
@@ -58,7 +57,7 @@ def process_release(
     release: ReleaseInfo,
     cache_dir: Path,
     repo_dir: Path,
-    seen_version_codes: dict[tuple[str, int], str],
+    seen_version_codes: dict[tuple[str, int, str], str],
 ) -> list[dict[str, object]]:
     artifacts: list[dict[str, object]] = []
     release_arches = {asset.arch for asset in release.assets}
@@ -80,7 +79,7 @@ def process_asset(
     asset: AssetInfo,
     cache_dir: Path,
     repo_dir: Path,
-    seen_version_codes: dict[tuple[str, int], str],
+    seen_version_codes: dict[tuple[str, int, str], str],
 ) -> dict[str, object]:
     expected_sha256 = expected_sha_from_digest(asset.digest)
     archive_path = cache_dir / "archives" / release.tag / asset.name
@@ -92,11 +91,12 @@ def process_asset(
         output_name = f"{metadata.package}_{metadata.version_code}_{asset.arch}.apk"
         output_path = repo_dir / output_name
 
-        version_key = (metadata.package, metadata.version_code)
+        version_key = (metadata.package, metadata.version_code, asset.arch)
         prior_sha = seen_version_codes.get(version_key)
         if prior_sha and prior_sha != metadata.sha256:
             raise ValueError(
-                f"Conflicting APK content for {metadata.package} versionCode {metadata.version_code}"
+                "Conflicting APK content for "
+                f"{metadata.package} versionCode={metadata.version_code} arch={asset.arch}"
             )
         seen_version_codes[version_key] = metadata.sha256
 
@@ -174,7 +174,7 @@ def main() -> None:
     clear_repo_apks(repo_dir)
 
     all_artifacts: list[dict[str, object]] = []
-    seen_version_codes: dict[tuple[str, int], str] = {}
+    seen_version_codes: dict[tuple[str, int, str], str] = {}
     for release in releases:
         artifacts = process_release(
             release=release,
