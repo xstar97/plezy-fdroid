@@ -94,15 +94,15 @@ jobs:
           def clean(value: str) -> str:
               return value.rstrip("\r\n")
 
-          keystore_password = clean(os.environ["FDROID_KEYSTORE_PASSWORD"])
-          key_password = clean(os.environ["FDROID_KEY_PASSWORD"])
+          keystore_password = os.environ["FDROID_KEYSTORE_PASSWORD"]
+          key_password = os.environ["FDROID_KEY_PASSWORD"]
           key_alias = clean(os.environ["FDROID_KEY_ALIAS"])
           repo_name = clean(os.environ["REPO_NAME"])
 
           if not keystore_password:
-              raise ValueError("FDROID_KEYSTORE_PASSWORD resolves to empty after newline trimming")
+              raise ValueError("FDROID_KEYSTORE_PASSWORD resolves to empty")
           if not key_password:
-              raise ValueError("FDROID_KEY_PASSWORD resolves to empty after newline trimming")
+              raise ValueError("FDROID_KEY_PASSWORD resolves to empty")
           if not key_alias:
               raise ValueError("FDROID_KEY_ALIAS resolves to empty after newline trimming")
           if not repo_name:
