@@ -2,6 +2,10 @@
 
 This repository mirrors Android releases from [`edde746/plezy`](https://github.com/edde746/plezy) into an F-Droid-compatible repository.
 
+Please support the [official](https://plezy.app/) releases as it helps the [`edde746`](https://github.com/edde746) who made plezy.
+
+This solely exists for personal use only.
+
 ## What it does
 
 - Discovers upstream GitHub Releases using the GitHub API.
