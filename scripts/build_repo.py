@@ -18,6 +18,8 @@ from common import (
 from inspect_apk import inspect_apk
 
 DEFAULT_ARCHES = {"arm64-v8a", "armeabi-v7a", "x86_64"}
+REPO_ICON_NAME = "icon.png"
+REPO_ICON_FALLBACK_URL = "https://cdn.jsdelivr.net/gh/selfhst/icons@main/png/plezy.png"
 
 
 def select_releases(
@@ -51,6 +53,24 @@ def clear_repo_apks(repo_dir: Path) -> None:
 def copy_apk_to_repo(apk_path: Path, output_path: Path) -> None:
     output_path.parent.mkdir(parents=True, exist_ok=True)
     shutil.copy2(apk_path, output_path)
+
+
+def ensure_repo_icon(repo_dir: Path, project_dir: Path | None = None) -> None:
+    icon_path = repo_dir / "icons" / REPO_ICON_NAME
+    if icon_path.exists():
+        return
+
+    icon_path.parent.mkdir(parents=True, exist_ok=True)
+    root_dir = project_dir or Path(__file__).resolve().parents[1]
+    legacy_icon_path = root_dir / REPO_ICON_NAME
+
+    if legacy_icon_path.exists():
+        shutil.copy2(legacy_icon_path, icon_path)
+        print(f"[icon] Copied legacy repo icon from {legacy_icon_path} to {icon_path}")
+        return
+
+    download_with_cache(REPO_ICON_FALLBACK_URL, icon_path)
+    print(f"[icon] Downloaded fallback repo icon to {icon_path}")
 
 
 def process_release(
@@ -172,6 +192,7 @@ def main() -> None:
         raise ValueError("No valid Plezy Android releases were selected")
 
     clear_repo_apks(repo_dir)
+    ensure_repo_icon(repo_dir)
 
     all_artifacts: list[dict[str, object]] = []
     seen_version_codes: dict[tuple[str, int, str], str] = {}
